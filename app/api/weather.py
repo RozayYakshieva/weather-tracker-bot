@@ -116,7 +116,7 @@ class WeatherAPI:
         return {
             "city": data["city"]["name"],
             "country": data["city"]["country"],
-            "forecast": list(forecast_by_day.values())[:5]  # первые 5 дней
+            "forecast": list(forecast_by_day.values())[:5]
         }
 
     @staticmethod
