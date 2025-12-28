@@ -93,7 +93,7 @@ async def weather_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         message = (
             f"❌ Город *{city}* не найден.\n"
-            f"Проверьте правильность написания.",
+            f"Проверьте правильность написания."
         )
     await update.message.reply_text(message, parse_mode='Markdown')
 
@@ -117,7 +117,7 @@ async def handle_city_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     else:
         message = (
             f"❌ Город *{city}* не найден.\n"
-            f"Проверьте правильность написания.",
+            f"Проверьте правильность написания."
         )
     await update.message.reply_text(message, parse_mode='Markdown')
 
