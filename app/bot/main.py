@@ -24,8 +24,7 @@ from app.bot.handlers import (
 )
 
 from app.database import db
-
-from app.bot.notifier import start_notifier, stop_notifier
+from app.bot.notifier import start_notifier
 
 
 def check_environment():
@@ -77,11 +76,9 @@ def main():
     try:
         app.run_polling()
     except KeyboardInterrupt:
-        stop_notifier()
         print("Бот остановлен")
     except Exception as e:
         logger.error(f"Ошибка запуска бота: {e}")
-        stop_notifier()
         sys.exit(1)
 
 

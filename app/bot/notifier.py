@@ -1,80 +1,50 @@
-import threading
-import time
-import schedule
 import logging
-from datetime import datetime
-import os
-import sys
 import asyncio
-from threading import Thread
+from datetime import datetime
+from app.api.weather import WeatherAPI
+from app.database.db import get_db_connection
 
 logger = logging.getLogger(__name__)
 
 
-class WeatherNotifier:
-    def __init__(self, application):
-        self.application = application
-        self.bot = application.bot
-        self.is_running = False
-        self.thread = None
-        self.loop = None
-
-        from app.api.weather import WeatherAPI
-        from app.database.db import get_db_connection
-
+class JobQueueNotifier:
+    def __init__(self):
         self.weather_api = WeatherAPI()
-        self.get_db_connection = get_db_connection
+        logger.info("JobQueueNotifier инициализирован")
 
-        logger.info("Сервис уведомлений инициализирован")
-
-    def send_notification(self, chat_id: int, city: str):
+    async def send_weather_notification(self, bot, chat_id: int, city: str):
         try:
             weather_data = self.weather_api.get_current_weather(city)
-            if not weather_data:
-                logger.warning(f"Не удалось получить погоду для {city}")
-                return False
-
-            message = (
-                f"⏰ *{weather_data['city']}, {weather_data.get('country', '')}*\n\n"
-                f"🌡️ Температура: *{weather_data['temperature']:.1f}°C*\n"
-                f"🤏 Ощущается как: *{weather_data['feels_like']:.1f}°C*\n"
-                f"💧 Влажность: *{weather_data['humidity']}%*\n"
-                f"💨 Ветер: *{weather_data['wind_speed']} м/с*\n"
-                f"📝 *{weather_data['weather']}*\n\n"
-                f"Хорошего дня! ☀"
-            )
-
-            if self.loop and self.loop.is_running():
-                asyncio.run_coroutine_threadsafe(
-                    self._async_send_message(chat_id, message),
-                    self.loop
+            if weather_data:
+                message = (
+                    f"⏰ *{weather_data['city']}, {weather_data.get('country', '')}*\n\n"
+                    f"🌡️ Температура: *{weather_data['temperature']:.1f}°C*\n"
+                    f"🤏 Ощущается как: *{weather_data['feels_like']:.1f}°C*\n"
+                    f"💧 Влажность: *{weather_data['humidity']}%*\n"
+                    f"💨 Ветер: *{weather_data['wind_speed']} м/с*\n"
+                    f"📝 *{weather_data['weather']}*\n\n"
+                    f"Хорошего дня! ☀"
                 )
-            else:
-                asyncio.run(self._async_send_message(chat_id, message))
 
-            logger.info(f"Уведомление отправлено в {chat_id} для {city}")
-            return True
+                await bot.send_message(
+                    chat_id=chat_id,
+                    text=message,
+                    parse_mode='Markdown'
+                )
+
+                logger.info(f"Уведомление отправлено в {chat_id} для {city}")
+                return True
 
         except Exception as e:
             logger.error(f"Ошибка отправки уведомления: {e}")
             return False
 
-    async def _async_send_message(self, chat_id: int, message: str):
-        try:
-            await self.bot.send_message(
-                chat_id=chat_id,
-                text=message,
-                parse_mode='Markdown'
-            )
-        except Exception as e:
-            logger.error(f"Ошибка в _async_send_message: {e}")
-
-    def check_and_send_notifications(self):
+    async def check_and_send_notifications(self, context):
         try:
             current_time = datetime.now().strftime("%H:%M")
             logger.debug(f"Проверка уведомления для времени {current_time}")
 
-            conn = self.get_db_connection()
+            conn = get_db_connection()
             if not conn:
                 return
 
@@ -97,75 +67,33 @@ class WeatherNotifier:
             logger.info(f"Найдено {len(subscriptions)} подписок на {current_time}")
 
             for telegram_id, city, _ in subscriptions:
-                self.send_notification(telegram_id, city)
-                time.sleep(0.5)
+                await self.send_weather_notification(context.bot, telegram_id, city)
+                await asyncio.sleep(0.5)
 
         except Exception as e:
             logger.error(f"Ошибка проверки уведомлений: {e}")
 
-    def run_scheduler(self):
-        logger.info("Запуск планировщика уведомлений...")
+    def start(self, application):
+        if not application.job_queue:
+            logger.error("JobQueue не доступен")
+            return False
 
-        self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self.loop)
+        application.job_queue.run_repeating(
+            callback=self.check_and_send_notifications,
+            interval=60,
+            first=10
+        )
 
-        schedule.every(1).minutes.do(self.check_and_send_notifications)
-
-        while self.is_running:
-            try:
-                schedule.run_pending()
-                time.sleep(60)
-            except Exception as e:
-                logger.error(f"Ошибка в планировщике: {e}")
-                time.sleep(60)
-
-        if self.loop and self.loop.is_running():
-            self.loop.close()
-
-    def start(self):
-        if self.is_running:
-            logger.warning("Сервис уведомлений уже запущен")
-            return
-
-        self.is_running = True
-        self.thread = threading.Thread(target=self.run_scheduler, daemon=True)
-        self.thread.start()
-
-        self.check_and_send_notifications()
-
-        logger.info("Сервис уведомлений запущен")
-
-    def stop(self):
-        self.is_running = False
-        if self.thread:
-            self.thread.join(timeout=5)
-        logger.info("Сервис уведомлений остановлен")
+        logger.info("JobQueueNotifier запущен")
+        return True
 
 
-_notifier_instance = None
+_notifier = JobQueueNotifier()
 
 
-def get_notifier(application=None):
-    global _notifier_instance
-
-    if _notifier_instance is None and application:
-        _notifier_instance = WeatherNotifier(application)
-
-    return _notifier_instance
+def get_notifier():
+    return _notifier
 
 
 def start_notifier(application):
-    notifier = get_notifier(application)
-    if notifier:
-        notifier.start()
-        return True
-    return False
-
-
-def stop_notifier():
-    global _notifier_instance
-    if _notifier_instance:
-        _notifier_instance.stop()
-        _notifier_instance = None
-        return True
-    return False
+    return _notifier.start(application)
