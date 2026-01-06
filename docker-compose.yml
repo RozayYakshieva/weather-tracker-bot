@@ -38,3 +38,14 @@ services:
     command: python -m app.bot.main
     depends_on:
       - postgres
+
+
+  tests:
+    build: .
+    command: [ "pytest", "tests/", "-v" ]
+    environment:
+      - DB_HOST=postgres
+      - OPENWEATHER_API_KEY=test_key
+      - TELEGRAM_BOT_TOKEN=dummy_token
+    depends_on:
+      - postgres
