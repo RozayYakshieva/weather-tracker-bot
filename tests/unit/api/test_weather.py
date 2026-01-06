@@ -1,4 +1,3 @@
-# tests/unit/api/test_weather.py
 import pytest
 from unittest.mock import patch
 from requests.exceptions import RequestException

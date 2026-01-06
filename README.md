@@ -13,4 +13,18 @@ Telegram bot for weather tracking with personal settings.
 - Telegram Bot
 - OpenWeatherMap API
 
-## Project StatusIn development
+## Сборка и запуск
+
+> **Требования**: установленные **Docker** и **docker-compose**.
+# 1. Сборка проекта
+```bash
+docker-compose build
+
+# 2. Unit-тесты
+docker-compose run --rm bot pytest tests/unit
+
+# 3. Интеграционные тесты
+docker-compose run --rm bot pytest tests/integration
+
+# 4. Запуск приложения
+docker-compose up bot

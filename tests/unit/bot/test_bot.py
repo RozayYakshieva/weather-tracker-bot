@@ -1,4 +1,3 @@
-# tests/unit/bot/test_bot.py
 import pytest
 from unittest.mock import patch, AsyncMock, MagicMock
 from telegram import Update, User, Message, Chat

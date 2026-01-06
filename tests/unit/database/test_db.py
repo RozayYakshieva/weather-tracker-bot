@@ -1,4 +1,3 @@
-# tests/unit/database/test_db.py
 import pytest
 from unittest.mock import patch, MagicMock
 from app.database.db import add_user, add_subscription

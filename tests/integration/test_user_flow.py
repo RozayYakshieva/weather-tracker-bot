@@ -1,4 +1,3 @@
-# tests/integration/test_user_flow.py
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
