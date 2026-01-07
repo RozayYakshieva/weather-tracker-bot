@@ -76,8 +76,8 @@ Telegram bot for weather tracking with personal settings.
 
 ### Diagrams
 
-
-
+![System Context Diagram](docs/1.png)
+![](2.png)
 ### API
 
 Weather Tracker Bot не предоставляет REST API для внешних клиентов. Весь интерфейс взаимодействия реализован через Telegram-чат.
