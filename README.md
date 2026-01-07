@@ -92,7 +92,7 @@ Weather Tracker Bot не предоставляет REST API для внешни
 
 ### Database
 
-![bd](bd/2.png)
+![bd](db/2.png)
 
 
 Основные сущности (`users`, `subscriptions`) вынесены в отдельные таблицы. Связь между ними реализована через целочисленный внешний ключ (`user_id → users.id`).  
